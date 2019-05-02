@@ -1,4 +1,5 @@
 CREATE TABLE location (
+    id SERIAL,
     latitude DECIMAL,
     longitude DECIMAL,
     formatted_query VARCHAR(255),
@@ -6,6 +7,7 @@ CREATE TABLE location (
 );
 
 CREATE TABLE weather (
+    id SERIAL,
     latitude DECIMAL,
     longitude DECIMAL,
     forecast TEXT,
@@ -13,7 +15,11 @@ CREATE TABLE weather (
 );
 
 CREATE TABLE events (
+    id SERIAL,
     link TEXT,
-    event_date TIME,
-    summary TEXT
+    name TEXT,
+    event_date DATE,
+    summary TEXT,
+    latitude DECIMAL,
+    longitude DECIMAL
 );
