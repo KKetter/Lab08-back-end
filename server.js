@@ -46,12 +46,10 @@ app.get('/location', (request, response) => {
   try {
     // queryData is what the user typed into the box in the FE and hit "explore"
     const queryData = request.query.data;
-    getLatLng(queryData);
-    // let geocodeURL = `https://maps.googleapis.com/maps/api/geocode/json?address=${queryData}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
-    // superagent.get(geocodeURL).end( (err, googleMapsApiResponse) => {
-    //   const location = new Location(queryData, googleMapsApiResponse.body);
-    //   response.send(location);
-    // });
+    getLatLng(queryData)
+      .then(location => response.send(location))
+      .catch(error => errorHandling(error, response));
+
   } catch( error ) {
     errorHandling(error, 500, response);
   }
@@ -94,6 +92,7 @@ function getDailyWeather(weatherData){
 
 // Function for handling errors
 function errorHandling(error, status, response){
+  console.log('ERROR HANDLER HIT');
   response.status(status).send('Sorry, something went wrong');
 }
 
@@ -113,6 +112,19 @@ function getLatLng(query) {
       console.log(data);
       if (data.rowCount > 0) {
         return data.rows[0];
+      } else {
+        console.log('we have no data in DB!!!');
+        let geocodeURL = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+        return superagent.get(geocodeURL)
+          .then(googleMapsApiResponse => {
+            let location = new Location(query, googleMapsApiResponse.body);
+            let insertStatement = 'INSERT INTO location (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4)';
+            let insertValues = [location.search_query, location.formatted_query, location.latitude, location.longitude];
+            client.query(insertStatement, insertValues);
+            console.log(location);
+            return location;
+          })
+          .catch(error => errorHandling(error));
       }
     });
 }
