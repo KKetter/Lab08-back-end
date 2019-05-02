@@ -154,7 +154,6 @@ function getWeather(query){
             });
             return dailyWeather;
           });
-
       }
     });
 
