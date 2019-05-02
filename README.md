@@ -3,31 +3,59 @@ SQL Back End - City Explorer Pair: Tisha/Kent
 
 # Project Name
 
-**Author**: Your Name Goes Here
+**Author**: Kent/Tisha
 **Version**: 1.0.0 (increment the patch/fix version number if you make more commits past your first submission)
 
 ## Overview
-<!-- Provide a high level overview of what this application is and why you are building it, beyond the fact that it's an assignment for this class. (i.e. What's your problem domain?) -->
+Create backend for city explorer with Postgres Database
 
 ## Getting Started
-<!-- What are the steps that a user must take in order to build this app on their own machine and get it running? -->
+- include the following variables with the repective API keys in the .env file
+  - EVENTBRITE_API_KEY=YOUR_API_KEY
+  - GOOGLE_MAPS_API_KEY=YOUR_API_KEY
+  - DARK_SKY_API_KEY=YOUR_API_KEY
+- install postgres and create a table for the city explorer DB include the following in the .env file 
+  - DATABASE_URL=postgres://localhost:5432/DATABASE_NAME
+- Navigate to the root of the project and run npm install
+
 
 ## Architecture
-<!-- Provide a detailed description of the application design. What technologies (languages, libraries, etc) you're using, and any other relevant design information. -->
+- backend deployed to Heroku
+- Postgres database
+- Node/Express server
 
 ## Change Log
-<!-- Use this area to document the iterative changes made to your application as each feature is successfully implemented. Use time stamps. Here's an examples:
 
-01-01-2001 4:59pm - Application now has a fully-functional express server, with a GET route for the location resource.
+### User Acceptance Test
+Number and name of feature: Database
 
-## Credits and Collaborations
+Estimate of time needed to complete: 1 hr
 
-## User Acceptance Test
-Number and name of feature: ________________________________
+Start time: 9:30
 
-Estimate of time needed to complete: _____
+Finish time: 10:30
 
-Start time: _____
+Actual time needed to complete: 1hr
+
+
+### User Acceptance Test
+Number and name of feature: Server
+
+Estimate of time needed to complete:3 hrs
+
+Start time: 10:30
+
+Finish time: 3:00 (with breaks)
+
+Actual time needed to complete: 3.5hrs
+
+
+### User Acceptance Test
+Number and name of feature: Deploy
+
+Estimate of time needed to complete: 30min
+
+Start time: 3:00
 
 Finish time: _____
 

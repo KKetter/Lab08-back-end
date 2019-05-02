@@ -73,12 +73,9 @@ app.get('/weather', (request, response) => {
 //route for eventbrite
 app.get('/events', (request, response) => {
   try {
-    let eventsURL = `https://www.eventbriteapi.com/v3/events/search?location.longitude=${request.query.data.longitude}&location.latitude=${request.query.data.latitude}&expand=venue&token=${process.env.EVENTBRITE_API_KEY}`;
-
-    superagent.get(eventsURL).end((err, eventsApiResponse) => {
-      //console.log(processEvents(eventsApiResponse.body.events.slice(0, 21)));
-      response.send(processEvents(eventsApiResponse.body.events.slice(0, 21)));
-    });
+    getEvents(request.query.data)
+      .then(events => response.send(events))
+      .catch(error => errorHandling(error, response));
   } catch( error ) {
     errorHandling(error, response);
   }
@@ -131,6 +128,7 @@ function getLatLng(query) {
     });
 }
 
+// weather endpoint handler
 function getWeather(query){
   let sqlStatement = 'SELECT * FROM weather WHERE latitude = $1 AND longitude = $2;';
   let values = [query.latitude, query.longitude];
@@ -158,5 +156,34 @@ function getWeather(query){
     });
 
 }
+
+// events endpoint handler
+function getEvents(query) {
+  let sqlStatement = 'SELECT * FROM events WHERE latitude = $1 AND longitude = $2;';
+  let values = [query.latitude, query.longitude];
+  return client.query(sqlStatement, values)
+    .then((data) => {
+      if (data.rowCount > 0) {
+        return data.rows.map(event => {
+          event.event_date = new Date(event.event_date).toDateString();
+          return event;
+        });
+      } else {
+        let eventsURL = `https://www.eventbriteapi.com/v3/events/search?location.longitude=${query.longitude}&location.latitude=${query.latitude}&expand=venue&token=${process.env.EVENTBRITE_API_KEY}`;
+        return superagent.get(eventsURL)
+          .then(eventsApiResponse => {
+            let events = processEvents(eventsApiResponse.body.events.slice(0, 21));
+            events.forEach(event => {
+              let insertStatement = 'INSERT INTO events (link, name, event_date, summary, latitude, longitude) VALUES ($1, $2, $3, $4, $5, $6)';
+              let insertValues = [event.link, event.name, event.event_date, event.summary, query.latitude, query.longitude];
+              client.query(insertStatement, insertValues);
+            });
+            return events;
+          });
+      }
+    });
+
+}
+
 
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
