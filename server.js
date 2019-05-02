@@ -23,8 +23,10 @@ const Location = function(query, res){
 };
 
 // Constructor for a DaysWeather.
-const DaysWeather = function(forecast, time){
+const DaysWeather = function(forecast, time, latitude, longitude){
   this.forecast = forecast;
+  this.latitude = latitude;
+  this.longitude = longitude;
   this.time = new Date(time * 1000).toDateString();
 };
 
@@ -51,20 +53,20 @@ app.get('/location', (request, response) => {
       .catch(error => errorHandling(error, response));
 
   } catch( error ) {
-    errorHandling(error, 500, response);
+    console.error(error);
+    errorHandling(error, response);
   }
 });
 
 //route for weather daily data
 app.get('/weather', (request, response) => {
   try {
-    let darkskyURL = `https://api.darksky.net/forecast/${process.env.DARK_SKY_API_KEY}/${request.query.data.latitude},${request.query.data.longitude}`;
+    getWeather(request.query.data)
+      .then(weather => response.send(weather))
+      .catch(error => errorHandling(error, response));
 
-    superagent.get(darkskyURL).end((err, weatherApiResponse) => {
-      response.send(getDailyWeather(weatherApiResponse.body));
-    });
   } catch( error ) {
-    errorHandling(error, 500, response);
+    errorHandling(error, response);
   }
 });
 
@@ -78,22 +80,23 @@ app.get('/events', (request, response) => {
       response.send(processEvents(eventsApiResponse.body.events.slice(0, 21)));
     });
   } catch( error ) {
-    errorHandling(error, 500, response);
+    errorHandling(error, response);
   }
 });
 
 // Function for getting all the daily weather
 function getDailyWeather(weatherData){
+  console.log('in getDailyWeather');
   let weatherArr = weatherData.daily.data;
   return weatherArr.map(day => {
-    return new DaysWeather(day.summary, day.time);
+    return new DaysWeather(day.summary, day.time, weatherData.latitude, weatherData.longitude);
   });
 }
 
 // Function for handling errors
-function errorHandling(error, status, response){
-  console.log('ERROR HANDLER HIT');
-  response.status(status).send('Sorry, something went wrong');
+function errorHandling(error, response){
+  console.log('ERROR HANDLER HIT', error);
+  response.status(500).send('Sorry, something went wrong');
 }
 
 // helper to process events
@@ -109,7 +112,6 @@ function getLatLng(query) {
   let values = [query];
   return client.query(sqlStatement, values)
     .then ((data)=>{
-      console.log(data);
       if (data.rowCount > 0) {
         return data.rows[0];
       } else {
@@ -127,6 +129,35 @@ function getLatLng(query) {
           .catch(error => errorHandling(error));
       }
     });
+}
+
+function getWeather(query){
+  let sqlStatement = 'SELECT * FROM weather WHERE latitude = $1 AND longitude = $2;';
+  let values = [query.latitude, query.longitude];
+  return client.query(sqlStatement, values)
+    .then((data) => {
+      if (data.rowCount > 0) {
+        console.log('we hit this');
+        return data.rows.map(day => {
+          day.time = new Date(day.time).toDateString();
+          return day;
+        });
+      } else {
+        let darkskyURL = `https://api.darksky.net/forecast/${process.env.DARK_SKY_API_KEY}/${query.latitude},${query.longitude}`;
+        return superagent.get(darkskyURL)
+          .then(weatherApiResponse => {
+            let dailyWeather = getDailyWeather(weatherApiResponse.body);
+            dailyWeather.forEach(day => {
+              let insertStatement = 'INSERT INTO weather (forecast, time, latitude, longitude) VALUES ($1, $2, $3, $4)';
+              let insertValues = [day.forecast, day.time, day.latitude, day.longitude];
+              client.query(insertStatement, insertValues);
+            });
+            return dailyWeather;
+          });
+
+      }
+    });
+
 }
 
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
