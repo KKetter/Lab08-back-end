@@ -5,6 +5,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const superagent = require('superagent');
+const pg = require('pg');
 
 // Variable for holding current location
 // use environment variable, or, if it's undefined, use 3000 by default
@@ -35,18 +36,22 @@ const Event = function(res) {
   this.summary = res.summary;
 };
 
+// Database Setup
+//            postgres protocol
+const client = new pg.Client(process.env.DATABASE_URL);
+client.connect();
+
 //routes
 app.get('/location', (request, response) => {
   try {
     // queryData is what the user typed into the box in the FE and hit "explore"
     const queryData = request.query.data;
-
-    let geocodeURL = `https://maps.googleapis.com/maps/api/geocode/json?address=${queryData}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
-    superagent.get(geocodeURL).end( (err, googleMapsApiResponse) => {
-      const location = new Location(queryData, googleMapsApiResponse.body);
-
-      response.send(location);
-    });
+    getLatLng(queryData);
+    // let geocodeURL = `https://maps.googleapis.com/maps/api/geocode/json?address=${queryData}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+    // superagent.get(geocodeURL).end( (err, googleMapsApiResponse) => {
+    //   const location = new Location(queryData, googleMapsApiResponse.body);
+    //   response.send(location);
+    // });
   } catch( error ) {
     errorHandling(error, 500, response);
   }
@@ -97,6 +102,19 @@ function processEvents(eventsData) {
   return eventsData.map( event => {
     return new Event(event);
   });
+}
+
+//
+function getLatLng(query) {
+  let sqlStatement = 'SELECT * FROM location WHERE search_query = $1;';
+  let values = [query];
+  return client.query(sqlStatement, values)
+    .then ((data)=>{
+      console.log(data);
+      if (data.rowCount > 0) {
+        return data.rows[0];
+      }
+    });
 }
 
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
